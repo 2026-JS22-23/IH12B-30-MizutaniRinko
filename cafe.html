@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>名古屋カフェマップ</title>
+
+    <!-- Google Mapsを読み込む -->
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAKLjisxFelKwIl1_G6MiEO9-ya7Twr5s&callback=initMap">
+    </script>
+
+    <style>
+
+        body {
+            box-sizing: border-box;/* 縦横をpaddingやborderを含めて計算 */
+            margin: 0;
+            font-family: "Yu Gothic", "Noto Sans JP", sans-serif;
+            background: #f6f2ed;
+            color: #45352c;
+        }
+
+        header {
+            background: linear-gradient(135deg, #493126, #76543c);
+            color: white;
+            text-align: center;
+            padding: 55px 20px;
+        }
+
+        header .coffee-icon {
+            font-size: 42px;
+            margin-bottom: 8px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-family: Georgia, serif;
+            font-size: 38px;
+            letter-spacing: 4px;
+        }
+
+        /* サブタイトル */
+        header p {
+            margin: 12px 0 0;
+            color: #eaded5;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        /* メイン */
+        main {
+            width: min(1150px, 92%);
+            margin: auto;
+            padding: 40px 0 70px;
+        }
+
+        /* 見出し */
+        .title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .title h2 {
+            margin: 0;
+            font-family: Georgia, serif;
+            font-size: 29px;
+            letter-spacing: 2px;
+        }
+
+        .title p {
+            margin-top: 8px;
+            color: #8b786b;
+            font-size: 13px;
+        }
+
+        /* 検索欄全体 */
+        .search-box {
+            max-width: 620px;
+            margin: auto;
+            display: flex;
+            background: white;
+            border-radius: 50px;
+            padding: 6px;
+            box-shadow: 0 5px 20px rgba(70, 45, 30, .12);
+        }
+
+        /* 検索入力欄 */
+        .search-box input {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 12px 18px;
+            font-size: 14px;
+            color: #45352c;
+        }
+
+        /* 検索欄の薄い文字 */
+        .search-box input::placeholder {
+            color: #aaa;
+        }
+
+        /* 検索ボタン */
+        .search-box button {
+            border: none;
+            background: #6f4e37;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: .25s;
+        }
+
+        /* ホバー */
+        .search-box button:hover {
+            background: #4b3326;
+        }
+
+        /* タグ検索全体 */
+        .tag-area {
+            margin: 25px auto 35px;
+            text-align: center;
+        }
+
+        /* タグの説明 */
+        .tag-title {
+            margin-bottom: 13px;
+            color: #88766a;
+            font-size: 13px;
+        }
+
+        /* タグを横並びにする */
+        .tag-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* タグボタン */
+        .filter-tag {
+            border: 1px solid #d7c8bb;
+            background: white;
+            color: #6f4e37;
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: .25s;
+        }
+
+        /* タグボタンにマウスを乗せたとき */
+        .filter-tag:hover {
+            background: #eaded5;
+            transform: translateY(-2px);
+        }
+
+        /* 選択中のタグ */
+        .filter-tag.active {
+            background: #6f4e37;
+            color: white;
+            border-color: #6f4e37;
+        }
+
+        /* Google Maps */
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(60, 40, 30, .18);
+            margin-bottom: 30px;
+        }
+
+        /* 検索結果の件数 */
+        #result {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #806f63;
+            font-size: 14px;
+        }
+
+        /* カフェカードを並べる */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+        }
+
+        /* カフェカード */
+        .card {
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(60, 40, 30, .10);
+            cursor: pointer;
+            transition: transform .3s, box-shadow .3s;
+        }
+
+        /* カードにマウスを乗せたとき */
+        .card:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 13px 30px rgba(60, 40, 30, .18);
+        }
+
+        /* カード画像の場所 */
+        .card-image {
+            position: relative;
+            height: 180px;
+            overflow: hidden;
+            background: #eee;
+        }
+
+        /* カード画像 */
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: .4s;
+        }
+
+        /* カードにマウスを乗せたとき画像を少し拡大 */
+        .card:hover .card-image img {
+            transform: scale(1.08);
+        }
+
+        /* カード画像の上に表示するタグ */
+        .card-tags {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        /* カード内のタグ */
+        .card-tag {
+            background: rgba(255, 255, 255, .94);
+            color: #6f4e37;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .08);
+        }
+
+        /* カードの文字部分 */
+        .card-content {
+            padding: 16px 17px 20px;
+        }
+
+        /* カフェ名 */
+        .card h3 {
+            margin: 0 0 8px;
+            font-family: Georgia, serif;
+            font-size: 18px;
+            color: #4b3326;
+        }
+
+        /* カフェ説明 */
+        .card p {
+            margin: 0;
+            color: #7e7067;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        /* 検索結果がないとき */
+        .no-result {
+            grid-column: 1 / -1; /* 1列目から最終列目まで */
+            background: white;
+            border-radius: 18px;
+            padding: 50px 20px;
+            text-align: center;
+            color: #8a776b;
+        }
+
+        /* 検索結果がないときの絵文字 */
+        .no-result .emoji {
+            font-size: 35px;
+            margin-bottom: 10px;
+        }
+
+        /* Google MapsのInfoWindow */
+        .info-window {
+            width: 230px;
+        }
+
+        /*情報うぃんどうの画像 */
+        .info-window img {
+            width: 100%;
+            height: 125px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        /* 情報うぃんどうのカフェ名 */
+        .info-window h3 {
+            margin: 5px 0;
+            font-size: 16px;
+            color: #4b3326;
+        }
+
+        /* 情報うぃんどうの説明 */
+        .info-window p {
+            margin: 0;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        /* 情報うぃんどうのタグ */
+        .info-tags {
+            margin-top: 8px;
+        }
+
+        /* 情報うぃんどう内のタグ */
+        .info-tag {
+            display: inline-block;
+            background: #eee4dc;
+            color: #6f4e37;
+            border-radius: 20px;
+            padding: 4px 7px;
+            margin: 2px;
+            font-size: 10px;
+        }
+
+        /* フッター */
+        footer {
+            background: #4b3326;
+            color: #d9c9bd;
+            text-align: center;
+            padding: 25px;
+            font-size: 12px;
+        }
+
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <!-- ヘッダー -->
+    <header>
+
+        <!-- コーヒーの絵文字 -->
+        <div class="coffee-icon">
+            ☕
+        </div>
+
+        <!-- サイトタイトル -->
+        <h1>
+            名古屋カフェマップ
+        </h1>
+
+        <!-- サブタイトル -->
+        <p>
+            名古屋で見つける、とっておきのカフェ時間。
+        </p>
+
+    </header>
+
+
+    <main>
+
+        <!-- ページの見出し -->
+        <div class="title">
+
+            <h2>
+                CAFE MAP
+            </h2>
+
+            <p>
+                気になるカフェを探してみよう
+            </p>
+
+        </div>
+
+
+        <!-- カフェ名を検索する場所 -->
+        <div class="search-box">
+
+            <!-- カフェ名を入力する場所 -->
+            <input
+                type="text"
+                id="search"
+                placeholder="カフェ名を検索..."
+            >
+
+            <!-- 検索ボタン -->
+            <button id="searchButton">
+                検索
+            </button>
+
+        </div>
+
+
+        <!-- タグ検索 -->
+        <div class="tag-area">
+
+            <!-- タグの説明 -->
+            <div class="tag-title">
+                 タグから探す
+            </div>
+
+            <!-- JavaScriptでタグボタンを追加する -->
+            <div
+                class="tag-buttons"
+                id="tagButtons">
+            </div>
+
+        </div>
+
+
+        <!-- Google Mapsを表示する場所 -->
+        <div id="map"></div>
+
+
+        <!-- 検索結果の件数を表示する場所 -->
+        <div id="result"></div>
+
+
+        <!-- カフェカードを表示する場所 -->
+        <div
+            class="cards"
+            id="cards">
+        </div>
+
+    </main>
+
+
+    <!-- フッター -->
+    <footer>
+        © 2026 Nagoya Cafe Map
+    </footer>
+
+
+    <script>
+
+        /* Google Mapsを入れるための変数 */
+        let map;
+
+        /* マーカーを入れる配列 */
+        let markers = [];
+
+        /* 情報ウィンドウを入れる配列 */
+        let infoWindows = [];
+
+        /* 現在開いている情報ウィンドウ */
+        let currentInfoWindow = null;
+
+        /* 現在選択されているタグ */
+        let selectedTag = "すべて";
+
+
+        /* カフェのデータ */
+        const spots = [
+
+            /* KANNON COFFEE 本山店 */
+            {
+                name: "KANNON COFFEE 本山店",
+                lat: 35.1635,
+                lng: 136.9658,
+                image: "images/KANNON COFFEE.jpg",
+                text: "自家焙煎コーヒーと焼き菓子が人気の落ち着いたカフェ。",
+                tags: [
+                    "本山",
+                    "駅近",
+                    "コーヒー",
+                    "おしゃれ"
+                ]
+            },
+
+            /* THE CUPS SAKAE */
+            {
+                name: "THE CUPS SAKAE",
+                lat: 35.1694,
+                lng: 136.9065,
+                image: "images/THE CUPS SAKAE.jpg",
+                text: "栄にあるおしゃれなスペシャルティコーヒー店。",
+                tags: [
+                    "栄",
+                    "駅近",
+                    "コーヒー",
+                    "おしゃれ"
+                ]
+            },
+
+            /* 喫茶ゾウメシ */
+            {
+                name: "喫茶ゾウメシ",
+                lat: 35.1717,
+                lng: 136.9066,
+                image: "images/zou.jpg",
+                text: "レトロな雰囲気が魅力の人気喫茶店。",
+                tags: [
+                    "名駅",
+                    "駅近",
+                    "レトロ",
+                    "モーニング"
+                ]
+            },
+
+            /* Panel Cafe */
+            {
+                name: "Panel Cafe",
+                lat: 35.16670332072982,
+                lng: 136.8871999115529,
+                image: "images/Panel.jpg",
+                text: "スペシャルティコーヒーやラテアートを楽しめるおしゃれなカフェ。",
+                tags: [
+                    "名駅",
+                    "駅近",
+                    "コーヒー",
+                    "ラテ",
+                    "おしゃれ"
+                ]
+            },
+
+            /* ブルーボトルコーヒー */
+            {
+                name: "ブルーボトルコーヒー 名古屋栄カフェ",
+                lat: 35.1679,
+                lng: 136.9098,
+                image: "images/bluebottle.jpg",
+                text: "栄エリアでスペシャルティコーヒーを楽しめるカフェ。",
+                tags: [
+                    "栄",
+                    "駅近",
+                    "コーヒー",
+                    "おしゃれ"
+                ]
+            },
+
+            /* 加藤珈琲店 */
+            {
+                name: "加藤珈琲店 栄店",
+                lat: 35.1718,
+                lng: 136.9102,
+                image: "images/katocoffee.jpg",
+                text: "栄・久屋大通エリアでコーヒーとモーニングを楽しめる喫茶店。",
+                tags: [
+                    "栄",
+                    "駅近",
+                    "モーニング",
+                    "コーヒー"
+                ]
+            },
+
+            /* GLITCH COFFEE */
+            {
+                name: "GLITCH COFFEE NAGOYA",
+                lat: 35.1719,
+                lng: 136.8848,
+                image: "images/glitch.jpg",
+                text: "名古屋駅周辺でスペシャルティコーヒーを楽しめるカフェ。",
+                tags: [
+                    "名駅",
+                    "駅近",
+                    "コーヒー",
+                    "おしゃれ"
+                ]
+            },
+
+            /* BUCYO COFFEE */
+            {
+                name: "BUCYO COFFEE",
+                lat: 35.1668,
+                lng: 136.8915,
+                image: "images/bucyo.jpg",
+                text: "名駅南エリアでモーニングや小倉トーストを楽しめる人気店。",
+                tags: [
+                    "名駅",
+                    "駅近",
+                    "モーニング",
+                    "コーヒー"
+                ]
+            },
+
+            /* カンノンコーヒー大須店 */
+            {
+                name: "カンノンコーヒー 大須店",
+                lat: 35.1597,
+                lng: 136.9015,
+                image: "images/kannon-osu.jpg",
+                text: "大須散策と一緒に楽しみたい人気のコーヒーショップ。",
+                tags: [
+                    "大須",
+                    "駅近",
+                    "コーヒー",
+                    "おしゃれ"
+                ]
+            },
+
+            /* Q.O.L. COFFEE */
+            {
+                name: "Q.O.L. COFFEE",
+                lat: 35.1760,
+                lng: 136.9055,
+                image: "images/qol.jpg",
+                text: "丸の内エリアにあるスペシャルティコーヒー店。",
+                tags: [
+                    "丸の内",
+                    "コーヒー",
+                    "落ち着く"
+                ]
+            },
+
+            /* ボンボン */
+            {
+                name: "ボンボン",
+                lat: 35.1777,
+                lng: 136.9177,
+                image: "images/bonbon.jpg",
+                text: "昔ながらの雰囲気と洋菓子を楽しめる老舗喫茶。",
+                tags: [
+                    "レトロ",
+                    "スイーツ",
+                    "モーニング",
+                    "落ち着く"
+                ]
+            },
+
+            /* 名古屋観光ホテル */
+            {
+                name: "名古屋観光ホテル ラウンジ ジャルダン",
+                lat: 35.1685,
+                lng: 136.8975,
+                image: "images/jardin.jpg",
+                text: "季節のアフタヌーンティーを楽しめるホテルラウンジ。",
+                tags: [
+                    "伏見",
+                    "駅近",
+                    "アフヌン",
+                    "スイーツ",
+                    "おしゃれ"
+                ]
+            },
+
+            /* 名古屋東急ホテル */
+            {
+                name: "名古屋東急ホテル グリンデルワルド",
+                lat: 35.1660,
+                lng: 136.9145,
+                image: "images/tokyu.jpg",
+                text: "栄駅から徒歩圏内。季節ごとのアフタヌーンティーを楽しめるラウンジ。",
+                tags: [
+                    "栄",
+                    "駅近",
+                    "アフヌン",
+                    "スイーツ",
+                    "おしゃれ"
+                ]
+            },
+
+            /* 茗圃 */
+            {
+                name: "茗圃",
+                lat: 35.1667,
+                lng: 136.9078,
+                image: "images/myohonagoya.jpg",
+                text: "中国茶と點心、デザートを楽しめるティータイムのお店。",
+                tags: [
+                    "栄",
+                    "アフヌン",
+                    "スイーツ",
+                    "落ち着く"
+                ]
+            }
+
+        ];
+
+
+        /* Google Mapsを作る */
+        function initMap() {
+
+            /* 地図を作成 */
+            map = new google.maps.Map(
+                document.getElementById("map"),
+                {
+                    /* 最初に表示する場所 */
+                    center: {
+                        lat: 35.1709,
+                        lng: 136.9050
+                    },
+
+                    /* 地図の拡大率 */
+                    zoom: 13,
+
+                    /* 地図タイプのボタンを消す */
+                    mapTypeControl: false,
+
+                    /* ストリートビューを消す */
+                    streetViewControl: false,
+
+                    /* 全画面ボタンを消す */
+                    fullscreenControl: false
+                }
+            );
+
+            /* カフェのマーカーを作る */
+            createMarkers();
+
+            /* タグボタンを作る */
+            createTags();
+
+            /* 最初はすべてのカフェを表示 */
+            displayCards(spots);
+
+        }
+
+
+        /* マーカーを作る */
+        function createMarkers() {
+
+            /* カフェの数だけ繰り返す */
+            spots.forEach(function(spot, index) {
+
+                /* マーカーを作る */
+                const marker = new google.maps.Marker({
+
+                    /* マーカーの位置 */
+                    position: {
+                        lat: spot.lat,
+                        lng: spot.lng
+                    },
+
+                    /* 地図に表示 */
+                    map: map,
+
+                    /* マーカーの名前 */
+                    title: spot.name
+
+                });
+
+                /* 作ったマーカーを配列に入れる */
+                markers.push(marker);
+
+
+                /* InfoWindowに表示するタグを作る */
+                const tagHTML = spot.tags
+                    .map(function(tag) {
+
+                        return `
+                            <span class="info-tag">
+                                #${tag}
+                            </span>
+                        `;
+
+                    })
+                    .join("");
+
+
+                /* 情報ウィンドウを作る */
+                const info = new google.maps.InfoWindow({
+
+                    content: `
+
+                        <div class="info-window">
+
+                            <img
+                                src="${spot.image}"
+                                alt="${spot.name}"
+                            >
+
+                            <h3>
+                                ${spot.name}
+                            </h3>
+
+                            <p>
+                                ${spot.text}
+                            </p>
+
+                            <div class="info-tags">
+                                ${tagHTML}
+                            </div>
+
+                        </div>
+
+                    `
+
+                });
+
+                /* 情報ウィンドウを配列に入れる */
+                infoWindows.push(info);
+
+
+                /* マーカーをクリックしたとき */
+                marker.addListener(
+                    "click",
+                    function() {
+
+                        /* 情報ウィンドウを開く */
+                        openInfoWindow(index);
+
+                    }
+                );
+
+            });
+
+        }
+
+
+        /* 情報ウィンドウを開く */
+        function openInfoWindow(index) {
+
+            /* 前に開いていたウィンドウを閉じる */
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+
+            /* 選択したカフェの情報ウィンドウを開く */
+            infoWindows[index].open(
+                map,
+                markers[index]
+            );
+
+            /* 今開いているウィンドウを記録 */
+            currentInfoWindow = infoWindows[index];
+
+        }
+
+
+        /* カフェカードを表示する */
+        function displayCards(list) {
+
+            /* カードを表示する場所を取得 */
+            const cards =
+                document.getElementById("cards");
+
+            /* 前のカードを消す */
+            cards.innerHTML = "";
+
+
+            /* 検索結果の件数を表示 */
+            document.getElementById("result").textContent =
+                `${list.length}件のカフェが見つかりました`;
+
+
+            /* 検索結果が0件の場合 */
+            if (list.length === 0) {
+
+                /* 「見つかりませんでした」を表示 */
+                cards.innerHTML = `
+
+                    <div class="no-result">
+
+                        <div class="emoji">
+                            ☕
+                        </div>
+
+                        条件に合うカフェが
+                        見つかりませんでした。
+
+                    </div>
+
+                `;
+
+                return;
+            }
+
+
+            /* 検索結果のカフェを1件ずつ表示 */
+            list.forEach(function(spot) {
+
+                /* 元のspotsの中で何番目か調べる */
+                const index = spots.indexOf(spot);
+
+
+                /* カードに表示するタグを作る */
+                const tagHTML = spot.tags
+                    .map(function(tag) {
+
+                        return `
+                            <span class="card-tag">
+                                #${tag}
+                            </span>
+                        `;
+
+                    })
+                    .join("");
+
+
+                /* 新しいカードを作る */
+                const card =
+                    document.createElement("div");
+
+                /* カードにclassをつける */
+                card.className = "card";
+
+
+                /* カードの中身を作る */
+                card.innerHTML = `
+
+                    <div class="card-image">
+
+                        <img
+                            src="${spot.image}"
+                            alt="${spot.name}"
+                        >
+
+                        <div class="card-tags">
+                            ${tagHTML}
+                        </div>
+
+                    </div>
+
+                    <div class="card-content">
+
+                        <h3>
+                            ${spot.name}
+                        </h3>
+
+                        <p>
+                            ${spot.text}
+                        </p>
+
+                    </div>
+
+                `;
+
+
+                /* カードをクリックしたとき */
+                card.onclick = function() {
+
+                    /* 地図をそのカフェの場所に移動 */
+                    moveMap(index);
+
+                };
+
+
+                /* 完成したカードを画面に追加 */
+                cards.appendChild(card);
+
+            });
+
+        }
+
+
+        /* カードをクリックしたとき地図を移動する */
+        function moveMap(index) {
+
+            /* 地図の中心をカフェの場所に変更 */
+            map.setCenter({
+                lat: spots[index].lat,
+                lng: spots[index].lng
+            });
+
+            /* 地図を拡大する */
+            map.setZoom(16);
+
+            /* 情報ウィンドウを開く */
+            openInfoWindow(index);
+
+        }
+
+
+        /* タグボタンを作る */
+        function createTags() {
+
+            /* タグを表示する場所を取得 */
+            const container =
+                document.getElementById("tagButtons");
+
+
+            /* 重複しないタグを作るためSetを使う */
+            const allTags = new Set();
+
+
+            /* すべてのカフェを調べる */
+            spots.forEach(function(spot) {
+
+                /* そのカフェのタグを調べる */
+                spot.tags.forEach(function(tag) {
+
+                    /* タグをSetに追加 */
+                    allTags.add(tag);
+
+                });
+
+            });
+
+
+            /* 「すべて」ボタンを作る */
+            createTagButton(
+                "すべて",
+                container
+            );
+
+
+            /* タグを表示する順番 */
+            const priorityTags = [
+
+                "栄",
+                "名駅",
+                "大須",
+                "本山",
+                "丸の内",
+                "伏見",
+                "駅近",
+                "アフヌン",
+                "コーヒー",
+                "スイーツ",
+                "モーニング",
+                "おしゃれ",
+                "レトロ",
+                "落ち着く",
+                "ラテ"
+
+            ];
+
+
+            /* 決めた順番でタグを作る */
+            priorityTags.forEach(function(tag) {
+
+                /* 実際に存在するタグだけ表示 */
+                if (allTags.has(tag)) {
+
+                    /* タグボタンを作る */
+                    createTagButton(
+                        tag,
+                        container
+                    );
+
+                    /* 作ったタグをSetから削除 */
+                    allTags.delete(tag);
+
+                }
+
+            });
+
+
+            /* その他のタグがあれば最後に表示 */
+            allTags.forEach(function(tag) {
+
+                createTagButton(
+                    tag,
+                    container
+                );
+
+            });
+
+        }
+
+
+        /* タグボタンを1個作る */
+        function createTagButton(tag, container) {
+
+            /* button要素を作る */
+            const button =
+                document.createElement("button");
+
+            /* CSSのclassを設定 */
+            button.className = "filter-tag";
+
+
+            /* 「すべて」は最初から選択状態 */
+            if (tag === "すべて") {
+
+                button.classList.add("active");
+
+            }
+
+
+            /* ボタンにタグ名を表示 */
+            button.textContent = `#${tag}`;
+
+
+            /* タグをクリックしたとき */
+            button.onclick = function() {
+
+                /* 現在選択しているタグを変更 */
+                selectedTag = tag;
+
+
+                /* すべてのタグからactiveを外す */
+                document
+                    .querySelectorAll(".filter-tag")
+                    .forEach(function(btn) {
+
+                        btn.classList.remove("active");
+
+                    });
+
+
+                /* クリックしたタグだけactiveにする */
+                button.classList.add("active");
+
+
+                /* カフェを絞り込む */
+                filterCards();
+
+            };
+
+
+            /* 作ったタグを画面に追加 */
+            container.appendChild(button);
+
+        }
+
+
+        /* 検索ボタンをクリックしたとき */
+        document
+            .getElementById("searchButton")
+            .addEventListener(
+                "click",
+                function() {
+
+                    /* 検索を実行する */
+                    filterCards();
+
+                }
+            );
+
+
+        /* Enterキーでも検索できるようにする */
+        document
+            .getElementById("search")
+            .addEventListener(
+                "keydown",
+                function(event) {
+
+                    /* Enterキーが押された場合 */
+                    if (event.key === "Enter") {
+
+                        /* 検索を実行 */
+                        filterCards();
+
+                    }
+
+                }
+            );
+
+
+        /* カフェを検索する */
+        function filterCards() {
+
+            /* 入力された文字を取得 */
+            const keyword =
+                document
+                    .getElementById("search")
+                    .value
+                    .trim()
+                    .toLowerCase();
+
+
+            /* 条件に合うカフェを探す */
+            const filtered =
+                spots.filter(function(spot) {
+
+                    /* カフェ名に検索文字があるか調べる */
+                    const nameMatch =
+                        spot.name
+                            .toLowerCase()
+                            .includes(keyword);
+
+
+                    /* 選択したタグがカフェについているか調べる */
+                    const tagMatch =
+                        selectedTag === "すべて"
+                        ||
+                        spot.tags.includes(selectedTag);
+
+
+                    /* 名前とタグの両方が合っているものを表示 */
+                    return nameMatch && tagMatch;
+
+                });
+
+
+            /* 検索結果のカードを表示 */
+            displayCards(filtered);
+
+
+            /* 地図のマーカーも絞り込む */
+            spots.forEach(function(spot, index) {
+
+                /* 検索結果に入っているカフェか確認 */
+                const visible =
+                    filtered.includes(spot);
+
+                /* 合っているカフェだけマーカーを表示 */
+                markers[index].setVisible(visible);
+
+            });
+
+
+            /* 検索結果が1件だけならその場所へ移動 */
+            if (filtered.length === 1) {
+
+                /* spotsの何番目か調べる */
+                const index =
+                    spots.indexOf(filtered[0]);
+
+                /* 地図を移動 */
+                moveMap(index);
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>
